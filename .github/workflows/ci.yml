@@ -1,5 +1,5 @@
 name: Continuous Integration
-# requires the "medium" act image
+
 on:
   workflow_dispatch:
   pull_request:
@@ -10,68 +10,16 @@ on:
       - main
 
 jobs:
-  # test-docker:
-  #   name: Docker Tests
-  #   runs-on: ubuntu-latest
-
-  #   # Run a local registry to push to
-  #   services:
-  #     registry:
-  #       image: registry:2
-  #       ports:
-  #         - 5001:5000
-
-  #   env:
-  #     TEST_TAG: localhost:5001/actions/container-action:latest
-
-  #   steps:
-  #     - name: Checkout
-  #       id: checkout
-  #       uses: actions/checkout@v4
-
-  #     - name: Setup Docker BuildX
-  #       id: setup-buildx
-  #       uses: docker/setup-buildx-action@v3
-  #       with:
-  #         install: true
-  #         driver-opts: network=host
-
-  #     - name: Build the Container
-  #       id: build
-  #       uses: docker/build-push-action@v5
-  #       with:
-  #         context: .
-  #         push: true
-  #         tags: ${{ env.TEST_TAG }}
-
-  #     - name: Run the Container
-  #       id: run
-  #       env:
-  #         INPUT_WHO_TO_GREET: Mona Lisa Octocat
-  #         INPUT_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
-  #         INPUT_SECRETS: |
-  #           cdc0a886-6ad6-4136-bfd4-b04f01149173 > SECRET_ONE
-  #         # 2b0da64f-f40d-434a-ad94-afdb01269ea9 > COMPARE_FILE
-  #         INPUT_BASE_URL: "https://vault.bitwarden.com"
-  #         INPUT_IDENTITY_URL: "https://identity.bitwarden.com"
-  #         INPUT_API_URL: "https://api.bitwarden.com"
-  #       run: |
-  #         echo "GITHUB_ENV=$GITHUB_ENV"
-  #         docker run \
-  #           -v "$GITHUB_ENV":/github/env \
-  #           --env INPUT_WHO_TO_GREET="${{ env.INPUT_WHO_TO_GREET }}" \
-  #           --env INPUT_ACCESS_TOKEN="${{ env.INPUT_ACCESS_TOKEN }}" \
-  #           --env INPUT_SECRETS="${{ env.INPUT_SECRETS }}" \
-  #           --env INPUT_BASE_URL="${{ env.INPUT_BASE_URL }}" \
-  #           --env INPUT_IDENTITY_URL="${{ env.INPUT_IDENTITY_URL }}" \
-  #           --env INPUT_API_URL="${{ env.INPUT_API_URL }}" \
-  #           --rm ${{ env.TEST_TAG }}
-
-  #         echo "secret_one: ${{ env.SECRET_ONE }}"
-
   test-action:
+    strategy:
+      matrix:
+        os:
+        - ubuntu-latest
+        - macos-latest
+        # - windows-latest # need to build Windows binaries
+
     name: GitHub Actions Test
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout
@@ -121,9 +69,6 @@ jobs:
             a668b804-781c-4864-8a49-b0500013b413 > GIGACHAD
             3865c716-4e4f-4d19-9be5-b2d1015fb57c > FERRIS
           cloud_region: us
-
-      # - name: Setup upterm session
-      #   uses: lhotari/action-upterm@v1
 
       - name: Print Output from existing sm-action
         run: |
