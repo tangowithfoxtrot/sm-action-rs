@@ -1,0 +1,13 @@
+[package]
+name = "sm-action"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.98"
+bitwarden-sm = { git = "https://github.com/bitwarden/sdk-internal.git", branch = "ps/fix-sm-init", version = "1.0.0" }
+bitwarden-vault = { git = "https://github.com/bitwarden/sdk-internal.git", branch = "ps/fix-sm-init", version = "1.0.0" }
+bitwarden-core = { git = "https://github.com/bitwarden/sdk-internal.git", branch = "ps/fix-sm-init", features = ["secrets"] }
+
+tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread"] }
+uuid = "1.16.0"

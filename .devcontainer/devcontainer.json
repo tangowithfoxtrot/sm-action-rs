@@ -1,0 +1,29 @@
+{
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers-contrib/features/actions-runner:1": {},
+    "ghcr.io/devcontainers-contrib/features/bitwarden-cli:1": {}, // no linux ARM exec :/
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers-contrib/features/gh-release:1": {
+      "repo": "bitwarden/sdk",
+      "binaryNames": "bws"
+    },
+    "ghcr.io/devcontainers/features/go:1": {},
+    "ghcr.io/robbert229/devcontainer-features/opentofu:1": {},
+    "ghcr.io/devcontainers/features/python:1": {},
+    "ghcr.io/devcontainers/features/rust:1": {
+      "profile": "complete"
+    },
+    "ghcr.io/marcozac/devcontainer-features/shellcheck:1": {},
+    "ghcr.io/devcontainers-contrib/features/act:1": {},
+    "ghcr.io/devcontainers-contrib/features/apt-packages:1": {
+      "packages": [
+        "build-essential",
+        "curl",
+        "nano",
+        "fish",
+        "git"
+      ]
+    }
+  }
+}

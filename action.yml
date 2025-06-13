@@ -1,0 +1,43 @@
+name: 'The name of your action here'
+description: 'Provide a description here'
+author: 'Your name or organization here'
+
+# Define your inputs here.
+inputs:
+  access_token:
+    description: "The service account access token for retrieving secrets"
+    required: true
+  cloud_region:
+    description: "The cloud region to use for the Bitwarden API. Defaults to 'US'."
+    required: false
+    default: "US"
+  secrets:
+    description: "One or more secret Ids to retrieve and the corresponding GitHub environment variable name to set"
+    required: true
+  base_url:
+    description: "(Optional) For self-hosted bitwarden instances provide your https://your.domain.com"
+    required: false
+  identity_url:
+    description: "(Optional) For self-hosted bitwarden instances provide your https://your.domain.com/identity"
+    required: false
+    default: "https://identity.bitwarden.com"
+  api_url:
+    description: "(Optional) For self-hosted bitwarden instances provide your https://your.domain.com/api"
+    required: false
+    default: "https://api.bitwarden.com"
+
+# Define your outputs here.
+outputs:
+  greeting:
+    description: 'Your output description here'
+
+runs:
+  using: docker
+  image: 'Dockerfile'
+  env:
+    SM_ACCESS_TOKEN: ${{ inputs.access_token }}
+    SM_CLOUD_REGION: ${{ inputs.cloud_region }}
+    SM_SECRETS: ${{ inputs.secrets }}
+    SM_BASE_URL: ${{ inputs.base_url }}
+    SM_IDENTITY_URL: ${{ inputs.identity_url }}
+    SM_API_URL: ${{ inputs.api_url }}
