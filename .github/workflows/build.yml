@@ -1,0 +1,13 @@
+name: Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-action:
+    name: Build
+    runs-on: macos-latest
+
+    steps:
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
