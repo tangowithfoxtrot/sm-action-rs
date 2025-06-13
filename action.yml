@@ -26,17 +26,12 @@ inputs:
     required: false
     default: "https://api.bitwarden.com"
 
-# # Define your outputs here.
-# outputs:
-#   greeting:
-#     description: 'Your output description here'
-
 runs:
   using: "composite"
   # image: "Dockerfile"
   steps:
     - name: Run Action
-      run: entrypoint.sh
+      run: ${{ github.action_path }}/entrypoint.sh
       shell: bash
       env:
         SM_ACCESS_TOKEN: ${{ inputs.access_token }}
