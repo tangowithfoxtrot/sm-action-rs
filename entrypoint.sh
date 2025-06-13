@@ -1,22 +1,8 @@
 #!/bin/sh
 
-# Helper functions
-log_info() {
-  echo
-}
-
-log_success() {
-  echo
-}
-
-log_error() {
-  echo "::error::$1"
-  exit 1
-}
-
-log_debug() {
-  echo "::debug::$1" >/dev/null
-}
+################################################################
+# a shim to select the correct binary to execute the sm-action #
+################################################################
 
 arch() {
   output="$(node -p process.arch)"
@@ -50,7 +36,7 @@ main() {
   echo "Executing sm-action for ____"
 
   target_triple="$(arch)-$(os)"
-  echo "./dist/$target_triple"
+  "./dist/$target_triple/sm-action"
 }
 
 # Run the script
