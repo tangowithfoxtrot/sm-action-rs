@@ -47,7 +47,7 @@ os() {
 # Main execution
 main() {
   log_info "Setting up bitwarden/sm-action"
-  echo "\n${colors[green]}Executing sm-action for ____${colors[reset]} 🎉"
+  echo "Executing sm-action for ____"
 
   target_triple="$(arch)-$(os)"
   echo "./dist/$target_triple"
