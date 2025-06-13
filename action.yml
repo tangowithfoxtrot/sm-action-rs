@@ -26,14 +26,14 @@ inputs:
     required: false
     default: "https://api.bitwarden.com"
 
-# Define your outputs here.
-outputs:
-  greeting:
-    description: 'Your output description here'
+# # Define your outputs here.
+# outputs:
+#   greeting:
+#     description: 'Your output description here'
 
 runs:
-  using: docker
-  image: 'Dockerfile'
+  using: "composite"
+  image: "Dockerfile"
   env:
     SM_ACCESS_TOKEN: ${{ inputs.access_token }}
     SM_CLOUD_REGION: ${{ inputs.cloud_region }}
@@ -41,3 +41,7 @@ runs:
     SM_BASE_URL: ${{ inputs.base_url }}
     SM_IDENTITY_URL: ${{ inputs.identity_url }}
     SM_API_URL: ${{ inputs.api_url }}
+  steps:
+    - name: Run Action
+      run: entrypoint.sh
+      shell: bash
