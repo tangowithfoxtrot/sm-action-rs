@@ -154,14 +154,14 @@ jobs:
           fi
 
       - name: Store binaries for commit
-        if: inputs.dry_run == false
+        if: inputs.dry_run == false && (github.ref == 'refs/heads/rc' || github.ref == 'refs/heads/hotfix-rc')
         uses: actions/upload-artifact@v4
         with:
           name: binaries-for-commit-${{ matrix.os }}
           path: ./dist/
 
   commit-binaries:
-    if: inputs.dry_run == false
+    if: inputs.dry_run == false && (github.ref == 'refs/heads/rc' || github.ref == 'refs/heads/hotfix-rc')
     needs: build
     runs-on: ubuntu-latest
 
