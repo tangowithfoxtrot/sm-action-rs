@@ -23,6 +23,8 @@ os() {
     PLATFORM="unknown-linux-musl"
   elif [ "$output" = "darwin" ]; then
     PLATFORM="apple-darwin"
+  elif [ "$output" = "win32" ]; then
+    PLATFORM="pc-windows-msvc"
   else
     error "Unsupported platform: $output"
   fi
@@ -32,8 +34,7 @@ os() {
 
 # Main execution
 main() {
-  log_info "Setting up bitwarden/sm-action"
-  echo "Executing sm-action for ____"
+  echo "Setting up bitwarden/sm-action"
 
   target_triple="$(arch)-$(os)"
   "./dist/$target_triple/sm-action"
