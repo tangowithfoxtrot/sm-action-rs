@@ -199,8 +199,12 @@ jobs:
 
       - name: Create binaries branch
         run: |
-          # Create a new branch with timestamp
-          BRANCH_NAME="binaries/$(date +%Y%m%d-%H%M%S)"
+          # Get the source branch name (remove refs/heads/ prefix if present)
+          SOURCE_BRANCH="${GITHUB_REF#refs/heads/}"
+          # Get short commit hash
+          COMMIT_HASH="${GITHUB_SHA:0:7}"
+          # Create branch name: binaries/<source-branch>/sm-action-<commit-hash>
+          BRANCH_NAME="binaries/${SOURCE_BRANCH}/sm-action-${COMMIT_HASH}"
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
 
           git config user.name "github-actions[bot]"
