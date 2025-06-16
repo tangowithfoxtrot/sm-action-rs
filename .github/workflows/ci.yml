@@ -15,6 +15,10 @@ on:
 
 jobs:
   test-action:
+    defaults:
+      run:
+        shell: bash
+
     strategy:
       matrix:
         os:
