@@ -1,4 +1,4 @@
-name: Build Cross-Platform Binaries
+name: Build Cross-platform Binaries
 
 on:
   workflow_dispatch:
@@ -9,9 +9,6 @@ on:
         default: true
         type: boolean
   pull_request:
-    branches:
-      - main
-  push:
     branches:
       - main
 
@@ -156,22 +153,15 @@ jobs:
             exit 1
           fi
 
-      - name: Upload binary artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: sm-action-${{ matrix.os }}
-          path: ./dist/
-          retention-days: 30
-
       - name: Store binaries for commit
-        if: inputs.dry_run == false && github.event_name == 'push'
+        if: inputs.dry_run == false
         uses: actions/upload-artifact@v4
         with:
           name: binaries-for-commit-${{ matrix.os }}
           path: ./dist/
 
   commit-binaries:
-    if: inputs.dry_run == false && github.event_name == 'push'
+    if: inputs.dry_run == false
     needs: build
     runs-on: ubuntu-latest
 
