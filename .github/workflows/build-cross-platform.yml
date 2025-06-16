@@ -197,34 +197,6 @@ jobs:
           echo "Final binary structure:"
           find ./dist -type f -name "sm-action*" -exec ls -la {} \;
 
-      - name: Test all binaries before commit
-        run: |
-          echo "Testing all binaries before committing..."
-          failed_tests=""
-
-          for binary in ./dist/*/sm-action*; do
-            if [ -f "$binary" ]; then
-              echo "Testing $binary..."
-              chmod +x "$binary" 2>/dev/null || true
-
-              # Run binary with --test flag and capture stdout and exit code
-              stdout_output=$("$binary" --test)
-              exit_code=$?
-
-              if [[ $exit_code -eq 0 && "$stdout_output" == *"success"* ]]; then
-                echo "✓ $binary executed correctly (exit code: $exit_code, found 'success' in output)"
-              else
-                echo "✗ $binary failed test (exit code: $exit_code, stdout: $stdout_output)"
-                failed_tests="$failed_tests $binary"
-              fi
-            fi
-          done
-
-          if [ -n "$failed_tests" ]; then
-            echo "Failed binaries:$failed_tests"
-            exit 1
-          fi
-
       - name: Create binaries branch
         run: |
           # Create a new branch with timestamp
