@@ -121,11 +121,9 @@ jobs:
           echo "Built binaries:"
           find ./dist -name "sm-action*" -exec ls -la {} \;
 
-      - name: Test binary execution (dry run only)
-        if: inputs.dry_run != false && github.event_name != 'push'
+      - name: Test binary execution
         env:
           BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
-        shell: bash
         run: |
           echo "Testing binary execution for ${{ matrix.os }} targets..."
           for binary in ./dist/*/sm-action*; do
@@ -141,20 +139,18 @@ jobs:
           done
 
       - name: Upload binary artifacts
-        if: inputs.dry_run != false || github.event_name != 'push'
         uses: actions/upload-artifact@v4
         with:
           name: sm-action-${{ matrix.os }}
           path: ./dist/
           retention-days: 30
 
-      - name: Store binaries for commit (non-dry-run)
+      - name: Store binaries for commit
         if: inputs.dry_run == false && github.event_name == 'push'
         uses: actions/upload-artifact@v4
         with:
           name: binaries-for-commit-${{ matrix.os }}
           path: ./dist/
-          retention-days: 1
 
   commit-binaries:
     if: inputs.dry_run == false && github.event_name == 'push'
