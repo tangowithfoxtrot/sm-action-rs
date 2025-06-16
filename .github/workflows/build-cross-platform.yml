@@ -1,0 +1,249 @@
+name: Build Cross-Platform Binaries
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run in dry run mode (test execution and upload artifacts only)'
+        required: false
+        default: true
+        type: boolean
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            targets: "x86_64-unknown-linux-musl,aarch64-unknown-linux-musl"
+            use_cross: true
+
+          - os: macos-latest
+            targets: "x86_64-apple-darwin,aarch64-apple-darwin"
+            use_cross: false
+
+          - os: windows-latest
+            targets: "x86_64-pc-windows-msvc,aarch64-pc-windows-msvc"
+            use_cross: false
+
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install targets
+        run: |
+          # Parse comma-separated targets and install each one
+          IFS=',' read -ra TARGETS <<< "${{ matrix.targets }}"
+          for target in "${TARGETS[@]}"; do
+            echo "Installing target: $target"
+            rustup target add "$target"
+          done
+
+      - name: Install cross (Linux only)
+        if: matrix.use_cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Cache target directory
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-target-
+
+      - name: Build binaries
+        run: |
+          # Parse comma-separated targets and build each one
+          IFS=',' read -ra TARGETS <<< "${{ matrix.targets }}"
+          for target in "${TARGETS[@]}"; do
+            echo "Building for target: $target"
+            mkdir -p "./dist/$target"
+
+            if [ "${{ matrix.use_cross }}" = "true" ]; then
+              cross build --release --target "$target"
+            else
+              cargo build --release --target "$target"
+            fi
+
+            # Determine binary suffix
+            if [[ "$target" == *"windows"* ]]; then
+              binary_suffix=".exe"
+            else
+              binary_suffix=""
+            fi
+
+            # Copy binary to dist
+            cp "target/$target/release/sm-action$binary_suffix" "./dist/$target/"
+
+            # Make executable on Unix
+            if [[ "$target" != *"windows"* ]]; then
+              chmod +x "./dist/$target/sm-action$binary_suffix"
+            fi
+          done
+
+      - name: Test binary execution (dry run only)
+        if: inputs.dry_run != false && github.event_name != 'push'
+        env:
+          BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
+        shell: bash
+        run: |
+          echo "Testing binary execution for ${{ matrix.os }} targets..."
+          for binary in ./dist/*/sm-action*; do
+            if [ -f "$binary" ]; then
+              echo "Testing $binary..."
+              # On native platforms, we can test execution
+              if [[ "$binary" == *"$(uname -m)"* ]] || [[ "${{ matrix.os }}" == "macos-latest" && "$binary" == *"darwin"* ]]; then
+                "$binary" 2>/dev/null || exit 1
+              else
+                echo "Cross-compiled binary - skipping execution test"
+              fi
+            fi
+          done
+
+      - name: Upload binary artifacts
+        if: inputs.dry_run != false || github.event_name != 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sm-action-${{ matrix.os }}
+          path: ./dist/
+          retention-days: 30
+
+      - name: Store binaries for commit (non-dry-run)
+        if: inputs.dry_run == false && github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-for-commit-${{ matrix.os }}
+          path: ./dist/
+          retention-days: 1
+
+  commit-binaries:
+    if: inputs.dry_run == false && github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all binary artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: binaries-for-commit-*
+          path: ./artifacts/
+          merge-multiple: false
+
+      - name: Reorganize binaries
+        run: |
+          # Move binaries from artifact subdirectories to proper target directories
+          mkdir -p ./dist
+          for artifact_dir in ./artifacts/binaries-for-commit-*/; do
+            # Copy all target directories from each OS artifact
+            cp -r "$artifact_dir"*/ ./dist/ 2>/dev/null || true
+          done
+
+          # Show final structure
+          echo "Final binary structure:"
+          find ./dist -type f -name "sm-action*" -exec ls -la {} \;
+
+      - name: Test all binaries before commit
+        env:
+          BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
+        run: |
+          echo "Testing all binaries before committing..."
+          failed_tests=""
+
+          for binary in ./dist/*/sm-action*; do
+            if [ -f "$binary" ]; then
+              echo "Testing $binary..."
+              chmod +x "$binary" 2>/dev/null || true
+
+              # Test basic execution (expect it to fail gracefully without proper args)
+              if timeout 10s "$binary" 2>/dev/null || [ $? -eq 124 ]; then
+                echo "✓ $binary executed successfully"
+              else
+                echo "✗ $binary failed to execute"
+                failed_tests="$failed_tests $binary"
+              fi
+            fi
+          done
+
+          if [ -n "$failed_tests" ]; then
+            echo "Failed binaries:$failed_tests"
+            exit 1
+          fi
+
+      - name: Create binaries branch
+        run: |
+          # Create a new branch with timestamp
+          BRANCH_NAME="binaries/$(date +%Y%m%d-%H%M%S)"
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b "$BRANCH_NAME"
+
+      - name: Commit binaries
+        run: |
+          git add ./dist/
+          git commit -m "Add cross-platform binaries
+
+          Built from commit: ${{ github.sha }}
+
+          Binaries included:
+          $(find ./dist -name 'sm-action*' -exec basename {} \; | sort)
+
+          Target platforms:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+          - x86_64-pc-windows-msvc
+          - aarch64-pc-windows-msvc"
+
+      - name: Push binaries branch
+        run: |
+          git push origin "$BRANCH_NAME"
+          echo "Binaries committed to branch: $BRANCH_NAME"
+
+      - name: Create summary
+        run: |
+          echo "## Cross-Platform Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Successfully built and committed binaries for all target platforms" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch created:** \`$BRANCH_NAME\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Binaries built:**" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          find ./dist -name 'sm-action*' -exec ls -la {} \; >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
