@@ -16,6 +16,13 @@ mod config;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+
+    // --test arg to validate the binaries in CI
+    if std::env::args().any(|arg| arg == "--test") {
+        println!("success");
+        return Ok(());
+    }
+
     let config = Config::new()?;
     let (api_url, identity_url) = infer_urls(&config)?;
 
