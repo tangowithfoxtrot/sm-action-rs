@@ -5,9 +5,13 @@ on:
   pull_request:
     branches:
       - main
+      - rc
+      - hotfix-rc
   push:
     branches:
       - main
+      - rc
+      - hotfix-rc
 
 jobs:
   test-action:
@@ -16,7 +20,7 @@ jobs:
         os:
         - ubuntu-latest
         - macos-latest
-        # - windows-latest # need to build Windows binaries
+        - windows-latest
 
     name: GitHub Actions Test
     runs-on: ${{ matrix.os }}

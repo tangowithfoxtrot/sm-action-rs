@@ -11,6 +11,14 @@ on:
   pull_request:
     branches:
       - main
+      - rc
+      - hotfix-rc
+
+  push:
+    branches:
+      - main
+      - rc
+      - hotfix-rc
 
 permissions:
   contents: write  # required to push branches and commits
