@@ -38,6 +38,9 @@ jobs:
 
     name: Build for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout
