@@ -28,10 +28,9 @@ inputs:
 
 runs:
   using: "composite"
-  # image: "Dockerfile"
   steps:
     - name: Run Action
-      run: ${{ github.action_path }}/entrypoint.sh
+      run: ${{ github.action_path }}/entrypoint.js
       shell: bash
       env:
         SM_ACCESS_TOKEN: ${{ inputs.access_token }}
