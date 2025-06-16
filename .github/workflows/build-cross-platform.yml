@@ -83,8 +83,14 @@ jobs:
 
       - name: Build binaries
         run: |
+          # Clean any existing dist directory to avoid contamination
+          rm -rf ./dist
+
           # Parse comma-separated targets and build each one
           IFS=',' read -ra TARGETS <<< "${{ matrix.targets }}"
+          echo "Building for ${{ matrix.os }} with targets: ${{ matrix.targets }}"
+          echo "Parsed targets: ${TARGETS[*]}"
+
           for target in "${TARGETS[@]}"; do
             echo "Building for target: $target"
             mkdir -p "./dist/$target"
@@ -110,6 +116,10 @@ jobs:
               chmod +x "./dist/$target/sm-action$binary_suffix"
             fi
           done
+
+          # Show what we actually built
+          echo "Built binaries:"
+          find ./dist -name "sm-action*" -exec ls -la {} \;
 
       - name: Test binary execution (dry run only)
         if: inputs.dry_run != false && github.event_name != 'push'
