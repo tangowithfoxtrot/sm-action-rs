@@ -123,29 +123,10 @@ fn set_secrets(secret_name: &str, secret_value: &str) -> Result<()> {
 
     issue_file_command(output_file, secret_name, secret_value)?;
 
-    // writeln!(
-    //     env_file,
-    //     "{secret_name}<<{delimiter}\n{secret_value}\n{delimiter}"
-    // )
-    // .map_err(|e| {
-    //     eprintln!("Error writing to {env_file:?}: {}", e);
-    //     e
-    // })?;
-
-    // writeln!(
-    //     output_file,
-    //     "{secret_name}<<{delimiter}\n{secret_value}\n{delimiter}",
-    // )
-    // .map_err(|e| {
-    //     eprintln!("Error writing to {output_file:?}: {}", e);
-    //     e
-    // })?;
-
     Ok(())
 }
 
 fn github_escape(secret_value: &str) -> String {
-    // secret_value.escape_debug().to_string()
     secret_value
         .replace('%', "%25")
         .replace('\r', "%0D")
