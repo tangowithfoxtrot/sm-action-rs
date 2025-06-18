@@ -11,7 +11,7 @@ arch() {
   elif [ "$output" = "arm64" ]; then
     ARCH="aarch64"
   else
-    error "Unsupported architecture: $output"
+    echo "Unsupported architecture: $output" >2
   fi
 
   echo "$ARCH"
@@ -26,7 +26,7 @@ os() {
   elif [ "$output" = "win32" ]; then
     PLATFORM="pc-windows-msvc"
   else
-    error "Unsupported platform: $output"
+    echo "Unsupported platform: $output" >2
   fi
 
   echo "$PLATFORM"
