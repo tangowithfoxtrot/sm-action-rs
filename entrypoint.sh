@@ -12,6 +12,7 @@ arch() {
     ARCH="aarch64"
   else
     echo "Unsupported architecture: $output" >2
+    exit 1
   fi
 
   echo "$ARCH"
@@ -27,6 +28,7 @@ os() {
     PLATFORM="pc-windows-msvc"
   else
     echo "Unsupported platform: $output" >2
+    exit 1
   fi
 
   echo "$PLATFORM"
