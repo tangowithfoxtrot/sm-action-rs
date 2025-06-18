@@ -18,6 +18,9 @@ pids
 .env
 .env.test
 
+# direnv
+.envrc*
+
 # OS metadata
 .DS_Store
 Thumbs.db

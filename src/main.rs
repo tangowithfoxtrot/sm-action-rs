@@ -9,7 +9,7 @@ use bitwarden_core::{Client, ClientSettings};
 use bitwarden_sm::ClientSecretsExt;
 use bitwarden_sm::secrets::SecretsGetRequest;
 
-use config::{Config, infer_urls};
+use config::{Config, get_env, infer_urls};
 use uuid::Uuid;
 
 mod config;
@@ -90,7 +90,7 @@ fn parse_secret_input(secret_lines: Vec<String>) -> HashMap<Uuid, String> {
 
 /// Masks a value in the GitHub Actions logs to prevent it from being displayed.
 fn mask_value(value: &str) {
-    println!("::add-mask::{}", value);
+    println!("::add-mask::{value}");
 }
 
 fn issue_file_command(mut file: std::fs::File, key: &str, value: &str) -> Result<()> {
@@ -105,8 +105,8 @@ fn set_secrets(secret_name: &str, secret_value: &str) -> Result<()> {
     let escaped_secret = binding.as_str();
     mask_value(escaped_secret); // ensure the value is masked in the logs
 
-    let env_path = std::env::var("GITHUB_ENV")?;
-    let output_path = std::env::var("GITHUB_OUTPUT")?;
+    let env_path = get_env("GITHUB_ENV").unwrap_or("/dev/null".to_owned());
+    let output_path = get_env("GITHUB_OUTPUT").unwrap_or("/dev/null".to_owned());
 
     let env_file = OpenOptions::new()
         .create(true) // needed for unit tests
@@ -163,9 +163,9 @@ mod tests {
         let env_content = std::fs::read_to_string(&env_path).unwrap();
         let output_content = std::fs::read_to_string(&output_path).unwrap();
 
-        assert!(env_content.contains(&format!("{}<<ghadelimiter_", secret_name)));
+        assert!(env_content.contains(&format!("{secret_name}<<ghadelimiter_")));
         assert!(env_content.contains(secret_value));
-        assert!(output_content.contains(&format!("{}<<ghadelimiter_", secret_name)));
+        assert!(output_content.contains(&format!("{secret_name}<<ghadelimiter_")));
         assert!(output_content.contains(secret_value));
     }
 

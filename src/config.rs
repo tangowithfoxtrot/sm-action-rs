@@ -103,7 +103,7 @@ pub fn infer_urls(config: &Config) -> Result<(String, String)> {
                         // Infer the API and Identity URLs from the base URL
                         Some(base) => {
                             debug("Using provided Base URL");
-                            (format!("{}/api", base), format!("{}/identity", base))
+                            (format!("{base}/api"), format!("{base}/identity"))
                         }
 
                         // No URLs were provided; use the defaults
@@ -134,7 +134,7 @@ pub fn get_env(key: &str) -> Option<String> {
 /// Prints a debug message to the GitHub Actions log if `RUNNER_DEBUG` or `ACTIONS_RUNNER_DEBUG` are set.
 pub fn debug(message: &str) {
     if get_env("RUNNER_DEBUG").is_some() || get_env("ACTIONS_RUNNER_DEBUG").is_some() {
-        println!("::debug::{}", message);
+        println!("::debug::{message}");
     }
 }
 
