@@ -79,8 +79,20 @@ build_fallback() {
     exit 1
   fi
 
+  # For Linux, always use GNU target for easier building
+  if echo "$target_triple" | grep -q "linux"; then
+    target_triple="$(arch)-unknown-linux-gnu"
+    echo "Switching to GNU target for local build: $target_triple"
+  fi
+
   # Ensure we have the correct target installed
-  rustup target add "$target_triple"
+  if ! rustup target list | grep installed | grep -q "$target_triple"; then
+    echo "Target $target_triple not found, adding it..."
+    if ! rustup target add "$target_triple"; then
+      echo "Failed to add target $target_triple" >&2
+      exit 1
+    fi
+  fi
 
   # Build for current platform
   cargo build --release --target "$target_triple"
