@@ -1,28 +1,28 @@
-name: Build Cross-platform Binaries
+name: Build Cross-Platform Binaries
 
 on:
+  release:
+    types: [published]
+
   workflow_dispatch:
     inputs:
-      dry_run:
-        description: 'Run in dry run mode (test execution and upload artifacts only)'
+      create_release:
+        description: 'Create a new release with binaries'
         required: false
-        default: true
+        default: false
         type: boolean
-  pull_request:
-    branches:
-      - main
-      - rc
-      - hotfix-rc
+      release_tag:
+        description: 'Release tag (required if creating release)'
+        required: false
+        type: string
 
+  pull_request:
+    branches: [main]
   push:
-    branches:
-      - main
-      - rc
-      - hotfix-rc
+    branches: [main]
 
 permissions:
-  contents: write  # required to push branches and commits
-  actions: read    # required to download artifacts
+  contents: write # required to push branches and commits
 
 env:
   CARGO_TERM_COLOR: always
@@ -162,14 +162,14 @@ jobs:
           fi
 
       - name: Store binaries for commit
-        if: inputs.dry_run == false && (github.ref == 'refs/heads/rc' || github.ref == 'refs/heads/hotfix-rc')
+        if: (github.ref == 'refs/heads/rc' || github.ref == 'refs/heads/hotfix-rc')
         uses: actions/upload-artifact@v4
         with:
           name: binaries-for-commit-${{ matrix.os }}
           path: ./dist/
 
   commit-binaries:
-    if: inputs.dry_run == false && (github.ref == 'refs/heads/rc' || github.ref == 'refs/heads/hotfix-rc')
+    if: (github.ref == 'refs/heads/rc' || github.ref == 'refs/heads/hotfix-rc')
     needs: build
     runs-on: ubuntu-latest
 
@@ -252,3 +252,80 @@ jobs:
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           find ./dist -name 'sm-action*' -exec ls -la {} \; >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+  create-release:
+    name: Create Release with Binaries
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' || inputs.create_release
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: sm-action-*
+          merge-multiple: true
+
+      - name: Create release packages
+        run: |
+          # Create compressed archives for each platform
+          for dir in */; do
+            target=$(basename "$dir")
+            echo "Packaging $target..."
+
+            cd "$dir"
+            if [[ "$target" == *"windows"* ]]; then
+              # Create zip for Windows
+              zip -r "../sm-action-${target}.zip" .
+            else
+              # Create tar.gz for Unix
+              tar -czf "../sm-action-${target}.tar.gz" .
+            fi
+            cd ..
+          done
+
+          # Create checksums
+          sha256sum sm-action-*.{tar.gz,zip} > checksums.txt 2>/dev/null || true
+
+          echo "Created packages:"
+          ls -la sm-action-*.{tar.gz,zip} checksums.txt 2>/dev/null || true
+
+      - name: Upload to existing release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            sm-action-*.tar.gz
+            sm-action-*.zip
+            checksums.txt
+
+      - name: Create new release
+        if: inputs.create_release && inputs.release_tag
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: Release ${{ inputs.release_tag }}
+          files: |
+            sm-action-*.tar.gz
+            sm-action-*.zip
+            checksums.txt
+          draft: false
+          prerelease: false
+          body: |
+            ## Cross-Platform Binaries for sm-action
+
+            This release contains pre-built binaries for all supported platforms:
+
+            ### Linux (MUSL - works on all distributions)
+            - `sm-action-x86_64-unknown-linux-musl.tar.gz` - Intel/AMD 64-bit
+            - `sm-action-aarch64-unknown-linux-musl.tar.gz` - ARM 64-bit
+
+            ### macOS
+            - `sm-action-x86_64-apple-darwin.tar.gz` - Intel Macs
+            - `sm-action-aarch64-apple-darwin.tar.gz` - Apple Silicon Macs
+
+            ### Windows
+            - `sm-action-x86_64-pc-windows-msvc.zip` - Intel/AMD 64-bit
+            - `sm-action-aarch64-pc-windows-msvc.zip` - ARM 64-bit
+
+            **Verification**: Use `checksums.txt` to verify file integrity.
