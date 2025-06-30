@@ -25,6 +25,10 @@ inputs:
     description: "(Optional) For self-hosted bitwarden instances provide your https://your.domain.com/api"
     required: false
     default: "https://api.bitwarden.com"
+  set_env:
+    description: "(Optional) Set the secrets as environment variables. Defaults to true"
+    required: false
+    default: "true"
 
 runs:
   using: "composite"
@@ -40,3 +44,4 @@ runs:
         SM_BASE_URL: ${{ inputs.base_url }}
         SM_IDENTITY_URL: ${{ inputs.identity_url }}
         SM_API_URL: ${{ inputs.api_url }}
+        SM_SET_ENV: ${{ inputs.set_env }}

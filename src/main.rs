@@ -52,7 +52,7 @@ async fn main() -> Result<()> {
     for secret in secrets.data.iter() {
         id_to_name_map
             .get(&secret.id)
-            .map(|name| set_secrets(name, &secret.value))
+            .map(|name| set_secrets(name, &secret.value, config.set_env))
             .transpose()?;
     }
 
@@ -100,21 +100,22 @@ fn issue_file_command(mut file: std::fs::File, key: &str, value: &str) -> Result
 }
 
 /// Sets a secret in the GitHub Actions environment.
-fn set_secrets(secret_name: &str, secret_value: &str) -> Result<()> {
+fn set_secrets(secret_name: &str, secret_value: &str, set_env: bool) -> Result<()> {
     let binding = github_escape(secret_value);
     let escaped_secret = binding.as_str();
     mask_value(escaped_secret); // ensure the value is masked in the logs
 
-    let env_path = get_env("GITHUB_ENV").unwrap_or("/dev/null".to_owned());
+    if set_env {
+        let env_path = get_env("GITHUB_ENV").unwrap_or("/dev/null".to_owned());
+        let env_file = OpenOptions::new()
+            .create(true) // needed for unit tests
+            .append(true)
+            .open(env_path)?;
+
+        issue_file_command(env_file, secret_name, secret_value)?;
+    }
+
     let output_path = get_env("GITHUB_OUTPUT").unwrap_or("/dev/null".to_owned());
-
-    let env_file = OpenOptions::new()
-        .create(true) // needed for unit tests
-        .append(true)
-        .open(env_path)?;
-
-    issue_file_command(env_file, secret_name, secret_value)?;
-
     let output_file = OpenOptions::new()
         .create(true) // needed for unit tests
         .append(true)
@@ -157,7 +158,7 @@ mod tests {
         let _ = std::fs::remove_file(&env_path);
         let _ = std::fs::remove_file(&output_path);
 
-        let _ = set_secrets(secret_name, secret_value);
+        let _ = set_secrets(secret_name, secret_value, true);
 
         // Check if the file was created and contains the expected value
         let env_content = std::fs::read_to_string(&env_path).unwrap();
@@ -213,7 +214,6 @@ mod tests {
         ]);
 
         assert_eq!(id_to_name_map.len(), 1); // We expect only one entry since the UUID is the same
-        // TODO: add a check for the warning message about duplicate UUIDs
 
         assert_eq!(
             id_to_name_map.get(&Uuid::from_str("91ba3f10-a9a2-4795-bacf-0eee2d39a074").unwrap()),

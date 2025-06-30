@@ -15,6 +15,7 @@ pub struct Config {
     pub base_url: Option<String>,
     pub api_url: Option<String>,
     pub identity_url: Option<String>,
+    pub set_env: bool,
 }
 
 impl Config {
@@ -44,6 +45,7 @@ impl Config {
         let base_url = get_env("SM_BASE_URL");
         let api_url = get_env("SM_API_URL");
         let identity_url = get_env("SM_IDENTITY_URL");
+        let set_env = get_env("SM_SET_ENV").is_some_and(|val| val != "false");
 
         Ok(Self {
             access_token,
@@ -52,6 +54,7 @@ impl Config {
             base_url,
             api_url,
             identity_url,
+            set_env,
         })
     }
 }
@@ -151,6 +154,7 @@ mod tests {
             base_url: None,
             api_url: Some("https://api.example.com".to_string()),
             identity_url: Some("https://identity.example.com".to_string()),
+            set_env: true,
         };
 
         let (api_url, identity_url) = infer_urls(&config).unwrap();
@@ -167,6 +171,7 @@ mod tests {
             base_url: None,
             api_url: None,
             identity_url: None,
+            set_env: true,
         };
 
         let (api_url, identity_url) = infer_urls(&config).unwrap();
@@ -183,6 +188,7 @@ mod tests {
             base_url: Some("https://example.com".to_string()),
             api_url: None,
             identity_url: None,
+            set_env: true,
         };
 
         let (api_url, identity_url) = infer_urls(&config).unwrap();
@@ -199,6 +205,7 @@ mod tests {
             base_url: None,
             api_url: Some("https://api.example.com".to_string()),
             identity_url: Some("https://identity.example.com".to_string()),
+            set_env: true,
         };
 
         let (api_url, identity_url) = infer_urls(&config).unwrap();
@@ -215,6 +222,7 @@ mod tests {
             base_url: None,
             api_url: None,
             identity_url: None,
+            set_env: true,
         };
 
         let (api_url, identity_url) = infer_urls(&config).unwrap();
@@ -231,6 +239,7 @@ mod tests {
             base_url: None,
             api_url: None,
             identity_url: None,
+            set_env: true,
         };
         let (api_url, identity_url) = infer_urls(&config).unwrap();
         assert_eq!(api_url, EU_DEFAULT_API_URL);
@@ -246,6 +255,7 @@ mod tests {
             base_url: None,
             api_url: None,
             identity_url: None,
+            set_env: true,
         };
 
         let (api_url, identity_url) = infer_urls(&config).unwrap();
@@ -262,6 +272,7 @@ mod tests {
             base_url: Some("https://example.com".to_string()),
             api_url: None,
             identity_url: None,
+            set_env: true,
         };
 
         let (api_url, identity_url) = infer_urls(&config).unwrap();
@@ -278,6 +289,7 @@ mod tests {
             base_url: None,
             api_url: Some("https://api.example.com".to_string()),
             identity_url: Some("https://identity.example.com".to_string()),
+            set_env: true,
         };
 
         let (api_url, identity_url) = infer_urls(&config).unwrap();
@@ -294,6 +306,7 @@ mod tests {
             base_url: None,
             api_url: Some("https://api.example.com".to_string()),
             identity_url: None,
+            set_env: true,
         };
 
         let result = infer_urls(&config);
@@ -313,6 +326,7 @@ mod tests {
             base_url: None,
             api_url: None,
             identity_url: Some("https://identity.example.com".to_string()),
+            set_env: true,
         };
 
         let result = infer_urls(&config);
@@ -341,10 +355,6 @@ mod tests {
         }
 
         assert_eq!(get_env("ARBITRARY_VAR1234"), None);
-
-        unsafe {
-            std::env::remove_var("ARBITRARY_VAR1234");
-        }
     }
 
     #[test]
