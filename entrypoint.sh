@@ -36,7 +36,7 @@ os() {
 
 download_binary() {
   target_triple="$1"
-  
+
   # Determine file extension and binary name
   if echo "$target_triple" | grep -q "windows"; then
     file_ext="zip"
@@ -45,25 +45,25 @@ download_binary() {
     file_ext="tar.gz"
     binary_name="sm-action"
   fi
-  
+
   archive_name="sm-action-${target_triple}.${file_ext}"
   download_url="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/${archive_name}"
-  
+
   echo "Downloading ${archive_name} from latest release..."
-  
+
   # Download the archive
   if ! curl -fsSL "$download_url" -o "$archive_name"; then
     echo "Failed to download from latest release, trying to build locally..."
     return 1
   fi
-  
+
   # Extract the binary
   if [ "$file_ext" = "zip" ]; then
     unzip -q "$archive_name" "$binary_name"
   else
     tar -xzf "$archive_name" "$binary_name"
   fi
-  
+
   chmod +x "$binary_name"
   echo "Successfully downloaded and extracted $binary_name"
   return 0
@@ -72,16 +72,31 @@ download_binary() {
 build_fallback() {
   target_triple="$1"
   echo "Building sm-action locally as fallback..."
-  
+
   # Check if we have Rust installed
   if ! command -v cargo >/dev/null 2>&1; then
     echo "Error: No pre-built binary available and Rust not installed"
     exit 1
   fi
-  
+
+  # For Linux, always use GNU target for easier building
+  if echo "$target_triple" | grep -q "linux"; then
+    target_triple="$(arch)-unknown-linux-gnu"
+    echo "Switching to GNU target for local build: $target_triple"
+  fi
+
+  # Ensure we have the correct target installed
+  if ! rustup target list | grep installed | grep -q "$target_triple"; then
+    echo "Target $target_triple not found, adding it..."
+    if ! rustup target add "$target_triple"; then
+      echo "Failed to add target $target_triple" >&2
+      exit 1
+    fi
+  fi
+
   # Build for current platform
   cargo build --release --target "$target_triple"
-  
+
   if echo "$target_triple" | grep -q "windows"; then
     cp "target/${target_triple}/release/sm-action.exe" .
   else
@@ -95,12 +110,12 @@ main() {
   echo "Setting up bitwarden/sm-action"
 
   target_triple="$(arch)-$(os)"
-  
+
   # Try to download pre-built binary first
   if ! download_binary "$target_triple"; then
     build_fallback "$target_triple"
   fi
-  
+
   # Execute the binary
   if echo "$target_triple" | grep -q "windows"; then
     ./sm-action.exe
